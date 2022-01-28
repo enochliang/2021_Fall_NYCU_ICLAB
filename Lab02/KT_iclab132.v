@@ -110,7 +110,7 @@ always@(*) begin
 		//7(-2,1)
 		6'b110001:begin cur_step = 3'b111; end
 		//default
-		default:begin end
+		default:begin cur_step = 3'b000;end
 	endcase
 end
 //***************************************************//
@@ -257,7 +257,8 @@ always@(posedge clk or negedge rst_n) begin
 			step_num <= move_num;//1
 			
 			for(i=2;i<26;i=i+1)begin
-				{step_history_round[i],step_history[i][2:0]}<={1'b0,priority_num[2:0]};//3
+				step_history[i][2:0]<=priority_num[2:0];
+				step_history_round[i]<=1'b0;//3
 			end
 			
 			
@@ -269,42 +270,18 @@ always@(posedge clk or negedge rst_n) begin
 		else begin
 			step_num <= step_num;//1
 			if(counter>2)begin
-				for(i=2;i<26;i=i+1)begin
-					if(i==counter-1)begin
-						{step_history_round[i],step_history[i][2:0]}<={step_history_round[i],cur_step[2:0]};//3
-					end
-					else begin
-						{step_history_round[i],step_history[i][2:0]}<={step_history_round[i],step_history[i][2:0]};//3
-					end
-				end
-			end
-			else begin
-				for(i=2;i<26;i=i+1)begin
-					{step_history_round[i],step_history[i][2:0]}<={step_history_round[i],step_history[i][2:0]};//3
-				end
+				step_history[counter-1][2:0] <= cur_step[2:0];
+				if(cur_step[2:0] < prior_main) step_history_round[counter-1] <= 1;
+				else step_history_round[counter-1] <= 0;
 			end
 			
-			
-			
-			
-			
-			input_start_flag <= input_start_flag;//6
-			prior_main <= prior_main;//9
 		end
 		
 		counter <= counter+1;//2
 		
 		
-		for(i=1;i<26;i=i+1)begin
-			if(i==counter)begin
-				position_x[i]<=in_x;//10
-				position_y[i]<=in_y;//10
-			end
-			else begin
-				position_x[i]<=position_x[i];//10
-				position_y[i]<=position_y[i];//10
-			end
-		end
+		position_x[counter]<=in_x;//10
+		position_y[counter]<=in_y;//10
 		compstate<=2'b0;
 	end
 	else begin
@@ -317,10 +294,7 @@ always@(posedge clk or negedge rst_n) begin
 					{step_history_round[i],step_history[i][2:0]}<=4'b0000;//3
 				end
 				
-				
 				input_start_flag<=1'b0;//6
-				
-				
 				
 				prior_main<=3'b000;//9
 				
@@ -334,27 +308,9 @@ always@(posedge clk or negedge rst_n) begin
 			INPUTMODE: begin
 				step_num<=step_num;//1
 				counter<=5'b00001;//2
-				for(i=2;i<26;i=i+1)begin
-					if(i==counter-1)begin
-						{step_history_round[i],step_history[i][2:0]}<={step_history_round[i],cur_step[2:0]};//3
-					end
-					else begin
-						{step_history_round[i],step_history[i][2:0]}<={step_history_round[i],step_history[i][2:0]};//3
-					end
-				end
-				
+				{step_history_round[counter-1],step_history[counter-1][2:0]}<={step_history_round[counter-1],cur_step[2:0]};//3
 				
 				input_start_flag<=1'b0;//6
-				
-				
-				
-				prior_main<=prior_main;//9
-				
-				
-				for(i=2;i<26;i=i+1)begin
-					position_x[i]<=position_x[i];//10
-					position_y[i]<=position_y[i];//10
-				end
 				
 				compstate<=2'b0;
 			end
@@ -365,104 +321,55 @@ always@(posedge clk or negedge rst_n) begin
 					if(step_num==5'd26)begin
 						step_num<=5'b00000;//1
 						counter<=counter+1;//2
-						for(i=2;i<26;i=i+1)begin
-							{step_history_round[i],step_history[i][2:0]}<={step_history_round[i],step_history[i][2:0]};//3
-						end
-						
 						
 						input_start_flag<=1'b0;//6
 						
-						
-						
 						prior_main<=3'b000;//9
 						
-						for(i=2;i<26;i=i+1)begin
-							position_x[i]<=position_x[i];//10
-							position_y[i]<=position_y[i];//10
-						end
 						compstate<=2'b0;
 					end
 					//COMPUTING:body .if step round
 					else if((step_num!=1) && ((step_history[step_num][2:0]==prior_main) && (step_history_round[step_num]))) begin
 						
-						step_num<=step_num;//1
-						for(i=2;i<26;i=i+1)begin
-							{step_history_round[i],step_history[i][2:0]} <= {step_history_round[i],step_history[i][2:0]};//3
-						end
-						
 						counter<=5'b00001;//2
 						
 						input_start_flag<=1'b0;//6
 						
-						prior_main<=prior_main;//9
-						for(i=2;i<26;i=i+1)begin
-							if(i==step_num-1)begin 
-								{position_x[i],position_y[i]}<=walk(step_history[i]+1,position_x[i-1],position_y[i-1]);//10
-							end
-							else begin
-								{position_x[i],position_y[i]}<={position_x[i],position_y[i]};//10
-							end
-						end
+						{position_x[step_num-1],position_y[step_num-1]}<=walk(step_history[step_num-1]+1,position_x[step_num-2],position_y[step_num-2]);//10
 						
 						compstate<=2'd1;
 					end
 					//COMPUTING:body .if the step is over the range
 					else if((position_x[step_num]>4) || (position_y[step_num]>4))begin
 						
-						
-						step_num<=step_num;//1
-						for(i=2;i<26;i=i+1)begin
-							{step_history_round[i],step_history[i][2:0]} <= {step_history_round[i],step_history[i][2:0]};//3
-						end
 						counter<=5'b00001;//2
 						
 						input_start_flag<=1'b0;//6
 						
-						prior_main<=prior_main;//9
-						
-						for(i=2;i<26;i=i+1)begin
-							if(i==step_num)begin {position_x[i],position_y[i]}<=walk(step_history[i]+1,position_x[i-1],position_y[i-1]); end//10
-							else begin {position_x[i],position_y[i]}<={position_x[i],position_y[i]}; end//10
-						end
+						{position_x[step_num],position_y[step_num]}<=walk(step_history[step_num]+1,position_x[step_num-1],position_y[step_num-1]);//10
 						
 						compstate<=2'd2;
 					end
 					//COMPUTING:body .if the block has been stepped
 					else if((step_num!=1) && compareline[step_num])begin
 						
-						step_num<=step_num;//1
-						for(i=2;i<26;i=i+1)begin
-							{step_history_round[i],step_history[i][2:0]} <= {step_history_round[i],step_history[i][2:0]};//3
-						end
 						counter<=5'b00001;//2
 						
 						input_start_flag<=1'b0;//6
 						
-						prior_main<=prior_main;//9
-						
-						for(i=2;i<26;i=i+1)begin
-							if(i==step_num)begin {position_x[i],position_y[i]}<=walk(step_history[step_num]+1,position_x[i-1],position_y[i-1]); end//10
-							else begin {position_x[i],position_y[i]}<={position_x[i],position_y[i]}; end//10
-						end
+						{position_x[step_num],position_y[step_num]}<=walk(step_history[step_num]+1,position_x[step_num-1],position_y[step_num-1]); //10
 						
 						compstate<=2'd3;
 					end
 					//COMPUTING:body .next step
 					else begin
 						step_num<=step_num+1;//1
-						for(i=2;i<26;i=i+1)begin
-							{step_history_round[i],step_history[i][2:0]} <= {step_history_round[i],step_history[i][2:0]};//3
-						end
+						
 						counter<=5'b00001;//2
 						
 						input_start_flag<=1'b0;//6
 						
-						prior_main<=prior_main;//9
-						
-						for(i=2;i<26;i=i+1)begin
-							if(i==step_num+1)begin {position_x[i],position_y[i]}<=walk(step_history[i],position_x[i-1],position_y[i-1]); end//10
-							else begin {position_x[i],position_y[i]}<={position_x[i],position_y[i]}; end//10
-						end
+						{position_x[step_num+1],position_y[step_num+1]}<=walk(step_history[step_num+1],position_x[step_num],position_y[step_num]); //10
 						
 						compstate<=2'd0;
 						//$display("next");
@@ -471,71 +378,27 @@ always@(posedge clk or negedge rst_n) begin
 				else if(compstate==2'd1)begin
 					step_num<=step_num-1;//1
 						
-					for(i=2;i<26;i=i+1)begin
-						if((i[4:0]+1)==step_num)begin
-							{step_history_round[i],step_history[i][2:0]} <= {step_history_round[i],step_history[i][2:0]}+4'b0001;//3
-						end
-						else if(i[4:0]==step_num)begin
-							{step_history_round[i],step_history[i][2:0]} <= {1'b0,step_history[i][2:0]};//3
-						end
-						else begin
-							{step_history_round[i],step_history[i][2:0]} <= {step_history_round[i],step_history[i][2:0]};//3
-						end
-					end
-					counter<=counter;
+					{step_history_round[step_num-1],step_history[step_num-1][2:0]} <= {step_history_round[step_num-1],step_history[step_num-1][2:0]}+4'b0001;//3
+					{step_history_round[step_num],step_history[step_num][2:0]} <= {1'b0,step_history[step_num][2:0]};//3
+					
 					input_start_flag<=1'b0;//6
-					
-					prior_main<=prior_main;//9
-					
-					for(i=2;i<26;i=i+1)begin
-						position_x[i]<=position_x[i];//10
-						position_y[i]<=position_y[i];//10
-					end
 					
 					compstate<=2'd0;
 				end
 				else if(compstate==2'd2)begin
-					step_num<=step_num;//1
 						
-					for(i=2;i<26;i=i+1)begin
-						if(i[4:0]==step_num)begin
-							{step_history_round[i],step_history[i][2:0]} <= {step_history_round[i],step_history[i][2:0]}+4'b0001;//3
-						end
-						else begin
-							{step_history_round[i],step_history[i][2:0]} <= {step_history_round[i],step_history[i][2:0]};//3
-						end
-					end
-					counter<=counter;//2
+					{step_history_round[step_num],step_history[step_num][2:0]} <= {step_history_round[step_num],step_history[step_num][2:0]} + 1;//3
+
 					input_start_flag<=1'b0;//6
 					
-					prior_main<=prior_main;//9
-					
-					for(i=2;i<26;i=i+1)begin
-						position_x[i]<=position_x[i];//10
-						position_y[i]<=position_y[i];//10
-					end
 					compstate<=2'd0;
 				end
 				else if(compstate==2'd3)begin
-					step_num<=step_num;//1
 						
-					for(i=2;i<26;i=i+1)begin
-						if(i[4:0]==step_num)begin
-							{step_history_round[i],step_history[i][2:0]} <= {step_history_round[i],step_history[i][2:0]}+4'b0001;//3
-						end
-						else begin
-							{step_history_round[i],step_history[i][2:0]} <= {step_history_round[i],step_history[i][2:0]};//3
-						end
-					end
-					counter<=counter;//2
+					{step_history_round[step_num],step_history[step_num][2:0]} <= {step_history_round[step_num],step_history[step_num][2:0]} + 1;//3
+
 					input_start_flag<=1'b0;//6
 					
-					prior_main<=prior_main;//9
-					
-					for(i=2;i<26;i=i+1)begin
-						position_x[i]<=position_x[i];//10
-						position_y[i]<=position_y[i];//10
-					end
 					compstate<=2'd0;
 				end
 			end
@@ -543,36 +406,16 @@ always@(posedge clk or negedge rst_n) begin
 			OUTPUTMODE: begin
 				step_num<=5'b00000;//1
 				
-				if(move_out==5'd25)begin
-					counter<=5'd1;//2
-				end
-				else begin
-					counter<=counter+5'b00001;//2
-				end
-				
-				for(i=2;i<26;i=i+1)begin
-					{step_history_round[i],step_history[i][2:0]}<={step_history_round[i],step_history[i][2:0]};//3
-				end
-				
-				
+				if(move_out==5'd25) counter<=5'd1;//2
+				else counter<=counter+1;//2
 				
 				input_start_flag<=1'b0;//6
 				
-				
-				
 				prior_main<=3'b000;//9
 				
-				for(i=2;i<26;i=i+1)begin
-					position_x[i]<=xline[i];//10
-					position_y[i]<=yline[i];//10
-				end
 				compstate<=2'd0;
 			end
 			
-			default: begin
-				
-			end
-
 		endcase
 	end
 end
