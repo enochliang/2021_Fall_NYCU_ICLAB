@@ -1,1 +1,1 @@
-##Learning how to write combinational circuits##
+Learning how to write combinational circuits
