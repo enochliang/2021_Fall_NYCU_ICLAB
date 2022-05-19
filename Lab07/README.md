@@ -1,3 +1,3 @@
-Learning how to use clock gating
+Learning how to cross different clock domain
 
 Learning STA
